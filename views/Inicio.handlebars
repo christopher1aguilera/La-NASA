@@ -4,10 +4,207 @@
 <head>
     <meta charset="utf-8">
     <title>Document</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <script src="/axios/axios.min.js"></script>
+    <script src="/jquery/jquery.js"></script>
 </head>
 
 <body>
-    {{> Inicio}}
+    {{#if urlhome}}
+    <form id="home" action="/">
+        <input type="submit" value="Home">
+    </form>
+    <form id="login" action="/login">
+        <input type="submit" value="Login">
+    </form>
+
+    {{> Home}}
+
+    <script>
+        document.getElementsByTagName("button")[0].setAttribute("onclick", "registrar()")
+        const token = localStorage.getItem('jwt-token')
+
+        if (token) {
+            location.href = "http://localhost:3003/evidencias"
+        }
+
+        function registrar() {
+            email;
+            nombre;
+            password;
+            let data = {
+                email: email.value,
+                nombre: nombre.value,
+                password: password.value,
+            };
+            axios.post("http://localhost:3003/usuario", data)
+                .then((data) => {
+                    if (data.data == "correo existe") {
+                        alert("correo existe")
+                    }
+                    else if (data.data == "ingrese todos los datos para registrarse") {
+                        alert("ingrese todos los datos para registrarse")
+                    }
+                    else {
+                        location.href = "http://localhost:3003/login"
+                        alert("Te registraste correctamente")
+                    }
+                })
+        }
+    </script>
+    {{/if}}
+
+
+    {{#if urllogin}}
+    <form id="home" action="/">
+        <input type="submit" value="Home">
+    </form>
+
+    {{> Login}}
+
+    <script>
+        const token = localStorage.getItem('jwt-token')
+
+        if (token) {
+            location.href = "http://localhost:3003/evidencias"
+        }
+
+        async function verificacion() {
+            email;
+            password;
+            await axios.get("http://localhost:3003/token?email=" + email.value + "&password=" + password.value)
+                .then((data) => {
+                    if (data.data == "Usuario o contraseña incorrecta") {
+                        alert("usuario o contraseña incorrecta")
+                    }
+                    else if (data.data == "ingrese todos los datos para iniciar secion") {
+                        alert("ingrese todos los datos para iniciar secion")
+                    }
+                    else if (data.data == "en validacion") {
+                        alert("en validacion")
+                    }
+                    else {
+                        localStorage.setItem('jwt-token', data.data)
+                        localStorage.setItem('email', email.value)
+                        location.href = "http://localhost:3003/evidencias/" + email.value
+                        alert("has ingresado correctamente")
+                    }
+                })
+        }
+    </script>
+    {{/if}}
+
+
+    {{#if urlevidencias}}
+    <form id="cerrar" action="/">
+        <input onclick="cerrarsesion()" type="submit" value="cerrar Sesion">
+    </form>
+
+    <div id="body">
+        {{> Evidencias}}
+    </div>
+
+    <script>
+        const secion = localStorage.getItem('email')
+        const URLactual = window.location.href;
+        let div = document.getElementById("body");
+        const token = localStorage.getItem('jwt-token')
+
+        function cerrarsesion() {
+            localStorage.removeItem('jwt-token');
+            localStorage.removeItem('email');
+        }
+
+        async function validartoken() {
+            if (!token) {
+                localStorage.removeItem('jwt-token');
+                localStorage.removeItem('email');
+                div.innerHTML = "";
+                alert("no estas autorizado")
+                location.href = "http://localhost:3003/Dashboard"
+                await axios.get("http://localhost:3003/Dashboard?token=" + token)
+            }
+            else {
+                await axios.get("http://localhost:3003/Dashboard?token=" + token)
+                    .then((data) => {
+                        if (URLactual == ("http://localhost:3003/evidencias/" + secion)) {
+                            alert("autorizado")
+                        }
+                    })
+            }
+        }
+
+        async function validarurl() {
+            await axios.get(URLactual)
+                .then((data) => {
+                    if (data.data == "url incorrecto") {
+                        localStorage.removeItem('jwt-token');
+                        localStorage.removeItem('email');
+                        div.innerHTML = "";
+                        alert("ingrese nuevamente")
+                    }
+                })
+        }
+
+        window.onload = validarurl()
+        window.onload = validartoken()
+    </script>
+    {{/if}}
+
+
+    {{#if urladmin}}
+    {{> Admin}}
+
+    <script>
+        let tbody = document.getElementById("cuerpo");
+        let registros = []
+
+        async function getData() {
+            await axios.get("http://localhost:3003/usuarios")
+                .then((data) => {
+                    registros = data.data;
+                    tbody.innerHTML = "";
+                    registros.forEach((c, i) => {
+                        if (c.auth == true) {
+                            tbody.innerHTML += `
+      <tr>
+        <td>${c.id}</td>
+        <td>${c.nombre}</td>
+        <td>${c.email}</td>
+        <td><input onclick="validar(${c.id})" type="checkbox" checked></td>
+      </tr>
+        `;
+                        }
+                        else {
+                            tbody.innerHTML += `
+      <tr>
+        <td>${c.id}</td>
+        <td>${c.nombre}</td>
+        <td>${c.email}</td>
+        <td><input onclick="validar(${c.id})" type="checkbox"></td>
+      </tr>
+        `;
+                        }
+                    });
+                });
+        }
+
+        function validar(id) {
+            valido = {
+                auth: registros[id - 1].auth,
+                email: registros[id - 1].email,
+                nombre: registros[id - 1].nombre
+            }
+            axios
+                .put("http://localhost:3003/usuario/" + id, valido)
+                .then(() => {
+                    getData();
+                });
+        }
+
+        window.onload = getData();
+    </script>
+    {{/if}}
 </body>
 
 </html>

@@ -11,80 +11,89 @@ const enviar = require('./mailer')
 const { nuevousuario, getusuarios, editvalidor} = require("./consultas");
 
 app.listen(3003, () => {
-console.log("El servidor está inicializado en el puerto 3003");
+    console.log("El servidor está inicializado en el puerto 3003");
 });
 
 const secretKey = 'Mi Llave Ultra Secreta'
-// let secion = []
 const jwt = require('jsonwebtoken')
 app.use( expressFileUpload({
     limits: { fileSize: 5000000 },
     abortOnLimit: true,
     responseOnLimit: "El peso del archivo que intentas subir supera el limite permitido",
     })
-    );
+);
 app.engine(
-"handlebars",
-exphbs({
-layoutsDir: __dirname + "/views",
-partialsDir: __dirname + "/views/componentes/",
-})
+    "handlebars",
+    exphbs({
+        layoutsDir: __dirname + "/views",
+        partialsDir: __dirname + "/views/componentes/",
+    })
 );
 app.set("view engine", "handlebars");
 
 app.use("/css", express.static(__dirname +
-"/node_modules/bootstrap/dist/css"));
+    "/node_modules/bootstrap/dist/css"));
 app.use('/jquery', express.static(__dirname +
     '/node_modules/jquery/dist'))
 app.use('/axios', express.static(__dirname +
     '/node_modules/axios/dist'))
 
 app.get("/", function (req, res) {
-    res.render("Home", {
-    layout: "Home"
+    res.render("Inicio", {
+        layout: "Inicio",
+        urlhome: req.route.path
     });
 });
 app.get("/login", function (req, res) {
-    res.render("Login", {
-    layout: "Login"
+    res.render("Inicio", {
+        layout: "Inicio",
+        urllogin: req.route.path
     });
 });
 app.get("/admin", function (req, res) {
-    res.render("Admin", {
-    layout: "Admin"
+    res.render("Inicio", {
+        layout: "Inicio",
+        urladmin: req.route.path
     });
 });
-// app.get("/evidencias", async function (req, res) {
-//     const { email} = req.query;
-//     const registros = await getusuarios();
-//     let seccion = ""
-//     const usuario = registros.find((u) => u.email == email);
-//     if(usuario){
-//     seccion = usuario.nombre
-//     }
-//     res.render("Evidencias", {
-//     layout: "Evidencias",
-//     nombre: seccion
-//     });
-// });
+app.get("/evidencias/:correo", async function(req,res){
+    const { correo } = req.params;
+    let seccion = ""
+    let url = ""
+    const registros = await getusuarios();
+    const usuario = registros.find((u) => u.email == correo);
+    if(usuario){
+        seccion = usuario.nombre
+        url = usuario.email
+    }
+    if(url != correo){
+        res.send("url incorrecto")
+    }
+    else{
+    res.render("Inicio", {
+            layout: "Inicio",
+            nombre: seccion,
+            urlevidencias: req.route.path
+        });
+    }
+});
 
 app.post("/usuario", async (req, res) => {
     const { email, nombre, password } = req.body;
     const registros = await getusuarios();
     const usuario = registros.find((u) => u.email == email);
     if (usuario) {
-        console.log("correo existe")
-res.send("correo existe");
-} else if(email && nombre && password){
-    const respuesta = await nuevousuario(email, nombre, password);
-    let mensaje = `Gracias por registrarte ${nombre}, te enviaremos un correo de confirmacion y autorizacion para subir fotos`
-    enviar(email, mensaje)
-    res.send(respuesta);
-    res.redirect("/login")
-} else {
-    console.log("ingrese todos los datos para registrarse")
-    res.send("ingrese todos los datos para registrarse");
-}
+        res.send("correo existe");
+    }
+    else if(email && nombre && password){
+        const respuesta = await nuevousuario(email, nombre, password);
+        let mensaje = `Gracias por registrarte ${nombre}, te enviaremos un correo de confirmacion y autorizacion para subir fotos`
+        enviar(email, mensaje)
+        res.send(respuesta);
+    }
+    else {
+        res.send("ingrese todos los datos para registrarse");
+    }
 });
 
 app.get("/usuarios", async (req, res) => {
@@ -96,19 +105,36 @@ app.put("/usuario/:id", async (req, res) => {
     const { id } = req.params;
     const { auth, email, nombre } = req.body;
     let validar = auth
-    console.log(email)
+    let mensaje;
     if (validar == true) {
         validar = false
-        let mensaje = `hola ${nombre}, te enviaremos este correo avisandote que te quitamos la autorizacion para subir fotos`
-        enviar(email, mensaje)
+        mensaje = `hola ${nombre}, te enviaremos este correo avisandote que te quitamos la autorizacion para subir fotos`
     }
     else{
         validar = true
-        let mensaje = `hola ${nombre}, te enviaremos este correo para confirmar y darte autorizacion para subir fotos`
-        enviar(email, mensaje)
+        mensaje = `hola ${nombre}, te enviaremos este correo para confirmar y darte autorizacion para subir fotos`
     }
+    enviar(email, mensaje)
     const respuesta = await editvalidor(id, validar);
     res.send(respuesta);
+});
+
+app.post("/upload", (req, res) => {
+    const { foto } = req.files;
+    let ID = uuidv4().slice(0, 6)
+    foto.mv(`${__dirname}/public/${ID}.jpg`, (err) => {
+        res.send(`
+            <h1>Muchas gracias por tu foto</h1>
+            <input type="submit" value="atras" onclick="atras()">
+            <script>
+            const secion = localStorage.getItem('email')
+
+            function atras() {
+            location.href = "http://localhost:3003/evidencias/"+ secion
+            }
+            </script>
+        `)
+    });
 });
 
 app.get("/token", async function (req, res) {
@@ -116,98 +142,35 @@ app.get("/token", async function (req, res) {
     const registros = await getusuarios();
     const usuario = registros.find((u) => u.email == email && u.password ==
     password);
-    if(usuario.auth == true){
-    if (usuario) {
-        const token = jwt.sign(usuario, secretKey)
-// secion.push(usuario.nombre)
-res.send(token)
-} else if(email == "" || password=="" ){
-    console.log("ingrese todos los datos para iniciar secion")
-    res.send("ingrese todos los datos para iniciar secion");
-} else {
-console.log("adios")
-res.send("Usuario o contraseña incorrecta");
-}
-}
-else{
-    console.log("en validacion")
-    res.send("en validacion")
-}
-});
-
-app.post("/upload", (req, res) => {
-    const { foto } = req.files;
-    let ID = uuidv4().slice(0, 6)
-    foto.mv(`${__dirname}/public/${ID}.jpg`, (err) => {
-    res.send(`
-    <h1>Muchas gracias por tu foto</h1>
-  <input type="submit" value="atras" onclick="atras()">
-<script>
-const secion = localStorage.getItem('email')
-
-function atras() {
-    location.href = "http://localhost:3003/evidencias/"+ secion
-}
-</script>
-    `)
-    });
+        if (usuario) {
+            if(usuario.auth == true){
+            const token = jwt.sign(usuario, secretKey)
+            res.send(token)
+            }
+            else{
+                res.send("en validacion")
+            }
+        }
+        else if(email == "" || password=="" ){
+            res.send("ingrese todos los datos para iniciar secion");
+        }
+        else {
+            res.send("Usuario o contraseña incorrecta");
+        }
 });
 
 app.get("/Dashboard", (req, res) => {
     let { token } = req.query;
     jwt.verify(token, secretKey, (err, decoded) => {
-    err
-    ? res.status(401).send(JSON.stringify({
-    error: "401 Unauthorized",
-    message: err.message,
-    }))
-    :
-    res.send("autorizado")
-    // res.send(`
-    // Bienvenido al Dashboard ${decoded.data}
-    // `);
+        err
+        ? res.status(401).send(JSON.stringify({
+            error: "401 Unauthorized",
+            message: err.message,
+        }))
+        :
+        res.send("autorizado")
+        // res.send(`
+            // Bienvenido al Dashboard ${decoded.data}
+        // `);
     });
-    });
-
-
-
-
-    // app.get("*", (req, res) => {
-    //     res.render("404", {
-    //         layout: "404"
-    //         });
-    //     })
-    app.get("/evidencias/:correo", async function(req,res){
-        const { correo } = req.params;
-            let seccion = ""
-            let url = ""
-    const registros = await getusuarios();
-    const usuario = registros.find((u) => u.email == correo);
-   
-        if(usuario){
-    seccion = usuario.nombre
-    url = usuario.email
-    }
-        res.render("Evidencias", {
-        layout: "Evidencias",
-        nombre: seccion
-        });
-    });
-
-    app.post("/evidencias/:correo", async function(req,res){
-        const { correo } = req.params;
-            let seccion = ""
-            let url = ""
-            console.log(correo)
-    const registros = await getusuarios();
-    const usuario = registros.find((u) => u.email == correo);
-        if(usuario){
-    seccion = usuario.nombre
-    url = usuario.email
-    console.log(url)
-    }
-    console.log(url)
-    if(url != correo){
-res.send("url incorrecto")
-    }
-    });
+});
