@@ -15,7 +15,7 @@ console.log("El servidor está inicializado en el puerto 3003");
 });
 
 const secretKey = 'Mi Llave Ultra Secreta'
-let secion = []
+// let secion = []
 const jwt = require('jsonwebtoken')
 app.use( expressFileUpload({
     limits: { fileSize: 5000000 },
@@ -54,12 +54,19 @@ app.get("/admin", function (req, res) {
     layout: "Admin"
     });
 });
-app.get("/evidencias", async function (req, res) {
-    res.render("Evidencias", {
-    layout: "Evidencias",
-    nombre: secion[0]
-    });
-});
+// app.get("/evidencias", async function (req, res) {
+//     const { email} = req.query;
+//     const registros = await getusuarios();
+//     let seccion = ""
+//     const usuario = registros.find((u) => u.email == email);
+//     if(usuario){
+//     seccion = usuario.nombre
+//     }
+//     res.render("Evidencias", {
+//     layout: "Evidencias",
+//     nombre: seccion
+//     });
+// });
 
 app.post("/usuario", async (req, res) => {
     const { email, nombre, password } = req.body;
@@ -112,7 +119,7 @@ app.get("/token", async function (req, res) {
     if(usuario.auth == true){
     if (usuario) {
         const token = jwt.sign(usuario, secretKey)
-secion.push(usuario.nombre)
+// secion.push(usuario.nombre)
 res.send(token)
 } else if(email == "" || password=="" ){
     console.log("ingrese todos los datos para iniciar secion")
@@ -134,9 +141,14 @@ app.post("/upload", (req, res) => {
     foto.mv(`${__dirname}/public/${ID}.jpg`, (err) => {
     res.send(`
     <h1>Muchas gracias por tu foto</h1>
-    <form id="atras" action="/evidencias">
-  <input type="submit" value="atras">
-</form>
+  <input type="submit" value="atras" onclick="atras()">
+<script>
+const secion = localStorage.getItem('email')
+
+function atras() {
+    location.href = "http://localhost:3003/evidencias/"+ secion
+}
+</script>
     `)
     });
 });
@@ -155,4 +167,47 @@ app.get("/Dashboard", (req, res) => {
     // Bienvenido al Dashboard ${decoded.data}
     // `);
     });
+    });
+
+
+
+
+    // app.get("*", (req, res) => {
+    //     res.render("404", {
+    //         layout: "404"
+    //         });
+    //     })
+    app.get("/evidencias/:correo", async function(req,res){
+        const { correo } = req.params;
+            let seccion = ""
+            let url = ""
+    const registros = await getusuarios();
+    const usuario = registros.find((u) => u.email == correo);
+   
+        if(usuario){
+    seccion = usuario.nombre
+    url = usuario.email
+    }
+        res.render("Evidencias", {
+        layout: "Evidencias",
+        nombre: seccion
+        });
+    });
+
+    app.post("/evidencias/:correo", async function(req,res){
+        const { correo } = req.params;
+            let seccion = ""
+            let url = ""
+            console.log(correo)
+    const registros = await getusuarios();
+    const usuario = registros.find((u) => u.email == correo);
+        if(usuario){
+    seccion = usuario.nombre
+    url = usuario.email
+    console.log(url)
+    }
+    console.log(url)
+    if(url != correo){
+res.send("url incorrecto")
+    }
     });

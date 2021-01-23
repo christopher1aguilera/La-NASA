@@ -36,9 +36,13 @@
 </style>
 
 <script>
+  const secion = localStorage.getItem('email')
+  const URLactual = window.location.href;
+
   const token = localStorage.getItem('jwt-token')
   async function cerrarsesion() {
     localStorage.removeItem('jwt-token');
+    localStorage.removeItem('email');
   }
 
   let div = document.getElementById("body");
@@ -46,17 +50,37 @@
   async function validartoken() {
     if (!token) {
       localStorage.removeItem('jwt-token');
+      localStorage.removeItem('email');
       div.innerHTML = "";
       alert("no estas autorizado")
+      location.href = "http://localhost:3003/Dashboard"
       await axios.get("http://localhost:3003/Dashboard?token=" + token)
     }
     else {
       await axios.get("http://localhost:3003/Dashboard?token=" + token)
         .then((data) => {
-          alert("autorizado")
+          if (URLactual == ("http://localhost:3003/evidencias/" + secion)) {
+            alert("autorizado")
+          }
         })
     }
   }
-
+  async function validarnombre() {
+    await axios.get("http://localhost:3003/evidencias/" + secion)
+  }
+  async function validarurl() {
+    await axios.post(URLactual)
+      .then((data) => {
+        if (data.data == "url incorrecto") {
+          localStorage.removeItem('jwt-token');
+          localStorage.removeItem('email');
+          div.innerHTML = "";
+          alert("ingrese nuevamente")
+        }
+      })
+  }
+  window.onload = validarurl()
   window.onload = validartoken()
+  window.onload = validarnombre()
+
 </script>

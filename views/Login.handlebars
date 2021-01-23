@@ -68,7 +68,8 @@
                 }
                 else {
                     localStorage.setItem('jwt-token', data.data)
-                    location.href = "http://localhost:3003/evidencias"
+                    localStorage.setItem('email', email.value)
+                    location.href = "http://localhost:3003/evidencias/" + email.value
                     alert("has ingresado correctamente")
                 }
             })
