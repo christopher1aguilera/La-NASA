@@ -11,9 +11,6 @@
 
 <body>
     {{#if urlhome}}
-    <form id="home" action="/">
-        <input type="submit" value="Home">
-    </form>
     <form id="login" action="/login">
         <input type="submit" value="Login">
     </form>
@@ -23,9 +20,10 @@
     <script>
         document.getElementsByTagName("button")[0].setAttribute("onclick", "registrar()")
         const token = localStorage.getItem('jwt-token')
+        const secion = localStorage.getItem('email')
 
         if (token) {
-            location.href = "http://localhost:3003/evidencias"
+            location.href = "http://localhost:3003/evidencias/" + secion
         }
 
         function registrar() {
@@ -64,9 +62,10 @@
 
     <script>
         const token = localStorage.getItem('jwt-token')
+        const secion = localStorage.getItem('email')
 
         if (token) {
-            location.href = "http://localhost:3003/evidencias"
+            "http://localhost:3003/evidencias/" + secion
         }
 
         async function verificacion() {
@@ -74,11 +73,14 @@
             password;
             await axios.get("http://localhost:3003/token?email=" + email.value + "&password=" + password.value)
                 .then((data) => {
-                    if (data.data == "Usuario o contraseña incorrecta") {
-                        alert("usuario o contraseña incorrecta")
+                    if (data.data == "Usuario no existe") {
+                        alert("Usuario no existe")
                     }
                     else if (data.data == "ingrese todos los datos para iniciar secion") {
                         alert("ingrese todos los datos para iniciar secion")
+                    }
+                    else if (data.data == "contraseña incorrecta") {
+                        alert("contraseña incorrecta")
                     }
                     else if (data.data == "en validacion") {
                         alert("en validacion")
@@ -109,45 +111,47 @@
         const URLactual = window.location.href;
         let div = document.getElementById("body");
         const token = localStorage.getItem('jwt-token')
+        div.style.display = "none"
 
         function cerrarsesion() {
             localStorage.removeItem('jwt-token');
             localStorage.removeItem('email');
         }
 
-        async function validartoken() {
-            if (!token) {
-                localStorage.removeItem('jwt-token');
-                localStorage.removeItem('email');
-                div.innerHTML = "";
-                alert("no estas autorizado")
-                location.href = "http://localhost:3003/Dashboard"
-                await axios.get("http://localhost:3003/Dashboard?token=" + token)
-            }
-            else {
-                await axios.get("http://localhost:3003/Dashboard?token=" + token)
-                    .then((data) => {
-                        if (URLactual == ("http://localhost:3003/evidencias/" + secion)) {
-                            alert("autorizado")
-                        }
-                    })
-            }
+        if (!token) {
+            localStorage.removeItem('jwt-token');
+            localStorage.removeItem('email');
+            alert("inicia session")
+            location.href = "http://localhost:3003"
         }
-
-        async function validarurl() {
-            await axios.get(URLactual)
-                .then((data) => {
-                    if (data.data == "url incorrecto") {
-                        localStorage.removeItem('jwt-token');
-                        localStorage.removeItem('email');
-                        div.innerHTML = "";
-                        alert("ingrese nuevamente")
-                    }
-                })
+        if (URLactual != ("http://localhost:3003/evidencias/" + secion)) {
+            alert("no tienes permiso para ingresar aca")
         }
-
-        window.onload = validarurl()
-        window.onload = validartoken()
+        else {
+            async function validartoken() {
+                try {
+                    await axios.get("http://localhost:3003/Dashboard?token=" + token + "&email=" + secion)
+                        .then((data) => {
+                            if (URLactual == ("http://localhost:3003/evidencias/" + secion)) {
+                                if (data.data == "no estas autorizado por url") {
+                                    alert("no estas autorizado por url")
+                                }
+                                else if (data.data == "no estas autorizado por auth") {
+                                    alert("no estas autorizado por auth")
+                                }
+                                else {
+                                    div.style.display = "inline-block"
+                                    alert("autorizado")
+                                }
+                            }
+                        })
+                }
+                catch {
+                    location.href = "http://localhost:3003/Dashboard?token=" + token + "&email=" + secion
+                }
+            }
+            window.onload = validartoken()
+        }
     </script>
     {{/if}}
 

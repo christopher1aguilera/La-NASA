@@ -77,7 +77,8 @@ app.get("/evidencias/:correo", async function(req,res){
         });
     }
 });
-
+//punto 4
+//jwt revisar
 app.post("/usuario", async (req, res) => {
     const { email, nombre, password } = req.body;
     const registros = await getusuarios();
@@ -140,37 +141,60 @@ app.post("/upload", (req, res) => {
 app.get("/token", async function (req, res) {
     const { email, password } = req.query;
     const registros = await getusuarios();
-    const usuario = registros.find((u) => u.email == email && u.password ==
-    password);
-        if (usuario) {
-            if(usuario.auth == true){
+    const usuario = registros.find((u) => u.email == email)
+if(usuario){
+    if(usuario.password == password){
+        if(usuario.auth == true){
             const token = jwt.sign(usuario, secretKey)
             res.send(token)
             }
             else{
                 res.send("en validacion")
             }
-        }
-        else if(email == "" || password=="" ){
-            res.send("ingrese todos los datos para iniciar secion");
-        }
-        else {
-            res.send("Usuario o contraseña incorrecta");
-        }
+    }
+    else if (email == "" || password=="" ){
+        res.send("ingrese todos los datos para iniciar secion");
+    }
+    else{
+        res.send("contraseña incorrecta")
+    }
+}
+else if (email == "" || password=="" ){
+    res.send("ingrese todos los datos para iniciar secion");
+}
+else{
+    res.send("Usuario no existe");
+}
 });
 
 app.get("/Dashboard", (req, res) => {
-    let { token } = req.query;
+
+    let { token, email } = req.query;
     jwt.verify(token, secretKey, (err, decoded) => {
-        err
-        ? res.status(401).send(JSON.stringify({
+        if(decoded){
+        if(decoded.email == email){
+            if(decoded.auth == true){
+                res.send("autorizado")
+            }
+            else{
+                console.log("no estas autorizado por auth")
+                res.status(401).send(JSON.stringify({
+                    error: "401 Unauthorized",
+                    message: "no estas autorizado para ingresar",
+                }))
+            }
+        }
+        else{
+            console.log("no estas autorizado por url")
+            res.send("no estas autorizado por url")
+        }
+    }
+    else{
+        res.status(401).send(JSON.stringify({
             error: "401 Unauthorized",
             message: err.message,
         }))
-        :
-        res.send("autorizado")
-        // res.send(`
-            // Bienvenido al Dashboard ${decoded.data}
-        // `);
-    });
+    }
+    })
+
 });
