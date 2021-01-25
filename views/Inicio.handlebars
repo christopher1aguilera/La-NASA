@@ -14,9 +14,7 @@
     <form id="login" action="/login">
         <input type="submit" value="Login">
     </form>
-
     {{> Home}}
-
     <script>
         document.getElementsByTagName("button")[0].setAttribute("onclick", "registrar()")
         const token = localStorage.getItem('jwt-token')
@@ -57,9 +55,7 @@
     <form id="home" action="/">
         <input type="submit" value="Home">
     </form>
-
     {{> Login}}
-
     <script>
         const token = localStorage.getItem('jwt-token')
         const secion = localStorage.getItem('email')
@@ -101,11 +97,9 @@
     <form id="cerrar" action="/">
         <input onclick="cerrarsesion()" type="submit" value="cerrar Sesion">
     </form>
-
     <div id="body">
         {{> Evidencias}}
     </div>
-
     <script>
         const secion = localStorage.getItem('email')
         const URLactual = window.location.href;
@@ -158,7 +152,6 @@
 
     {{#if urladmin}}
     {{> Admin}}
-
     <script>
         let tbody = document.getElementById("cuerpo");
         let registros = []

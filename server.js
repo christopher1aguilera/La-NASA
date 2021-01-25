@@ -77,8 +77,7 @@ app.get("/evidencias/:correo", async function(req,res){
         });
     }
 });
-//punto 4
-//jwt revisar
+
 app.post("/usuario", async (req, res) => {
     const { email, nombre, password } = req.body;
     const registros = await getusuarios();
@@ -168,7 +167,6 @@ else{
 });
 
 app.get("/Dashboard", (req, res) => {
-
     let { token, email } = req.query;
     jwt.verify(token, secretKey, (err, decoded) => {
         if(decoded){
